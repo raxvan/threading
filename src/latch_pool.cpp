@@ -2,7 +2,7 @@
 
 namespace threading
 {
-	void unique_latch_events::arrive_and_wait(const dev::static_string& s)
+	void unique_latch_events::arrive_and_wait(const dev::static_string_hash32& s)
 	{
 		m_container_lock.lock();
 

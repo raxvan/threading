@@ -12,7 +12,7 @@ namespace threading
 	public:
 		// TODO: arrive_and_continue(const dev::static_string& s)
 
-		void arrive_and_wait(const dev::static_string& s);
+		void arrive_and_wait(const dev::static_string_hash32& s);
 
 	protected:
 		struct latch_info
@@ -23,8 +23,8 @@ namespace threading
 
 		struct latch_entry
 		{
-			dev::static_string key;
-			latch_info*		   latch;
+			dev::static_string_hash32 key;
+			latch_info*		   latch = nullptr;
 		};
 
 		latch_info* alloc_latch();
