@@ -24,11 +24,11 @@ namespace threading
 		struct latch_entry
 		{
 			dev::static_string_hash32 key;
-			latch_info*		   latch = nullptr;
+			latch_info*				  latch = nullptr;
 		};
 
 		latch_info* alloc_latch();
-		void		 free_latch(latch_info* e);
+		void		free_latch(latch_info* e);
 
 	protected:
 		threading::spin_lock	 m_container_lock;
