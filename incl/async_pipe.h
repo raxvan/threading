@@ -2,8 +2,10 @@
 
 #include "thread_primitives.h"
 
-namespace core
+namespace threading
 {
+	extern void sleep_thread(const uint32_t ms_time);
+
 	// for multiple producers/multiple consumers of data T
 	template <class T>
 	struct async_pipe
@@ -48,7 +50,7 @@ namespace core
 		// void(T&&)
 		void consume(const F& _func) // try to get, immediately return when no items are available
 		{
-			std::lock_guard<dev::spin_lock> _(m_main_lock);
+			std::lock_guard<threading::spin_lock> _(m_main_lock);
 			if (m_items.size() > 0)
 				_consume_locked(_func);
 		}
@@ -64,7 +66,7 @@ namespace core
 		}
 		bool push_back(const T& item)
 		{
-			std::lock_guard<dev::spin_lock> _(m_main_lock);
+			std::lock_guard<threading::spin_lock> _(m_main_lock);
 			m_items.push_back(item);
 			return _on_push_back_locked();
 		}

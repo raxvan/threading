@@ -33,7 +33,7 @@ namespace threading
 		void start_wall(ITR _start, const ITR& _end, const uint32_t base_index = 0)
 		{
 			DEV_ASSERT(std::distance(_start, _end) > 0);
-			dev::scope_latch ib { std::size_t(std::distance(_start, _end)) };
+			threading::latch ib { std::size_t(std::distance(_start, _end)) };
 			uint32_t		 index = base_index;
 			while (_start != _end)
 				start_one(index++, *_start++, &ib);
