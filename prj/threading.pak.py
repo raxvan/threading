@@ -3,6 +3,7 @@ def configure(cfg):
 	cfg.link_if_enabled("../../ttf/testing.pak.py")
 
 	cfg.link("../../dev-platform/prj/dev-platform.pak.py")
+	cfg.link("../../srcgen/prj/reflection.pak.py")
 
 def construct(ctx):
 	ctx.config("type","lib")
@@ -14,3 +15,4 @@ def construct(ctx):
 
 	if ctx.module_enabled("testing"):
 		ctx.assign("public define:THREADING_TESTING")
+

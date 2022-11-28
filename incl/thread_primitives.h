@@ -1,6 +1,7 @@
 #pragma once
 
-#include <devstd.h>
+
+#include "threading_config.h"
 
 #include <thread>
 #include <atomic>

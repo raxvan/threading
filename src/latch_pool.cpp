@@ -2,7 +2,7 @@
 
 namespace threading
 {
-	void unique_latch_events::arrive_and_wait(const dev::static_string_hash32& s)
+	void unique_latch_events::arrive_and_wait(const sg::compiletime_identifier& s)
 	{
 		m_container_lock.lock();
 
@@ -33,6 +33,7 @@ namespace threading
 			// second to arrive
 			{
 				auto*						 latch_ptr = itr->latch;
+				THREADING_ASSERT(latch_ptr != nullptr);
 				std::unique_lock<std::mutex> _(latch_ptr->mutex);
 				latch_ptr->cv.notify_one();
 			}

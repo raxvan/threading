@@ -7,7 +7,7 @@ namespace threading
 
 	//--------------------------------------------------------------------------------------------------------------------------------
 	class iThreadContext;
-	class ThreadGroup : public il::vobj
+	class ThreadGroup
 	{
 	public:
 		virtual ~ThreadGroup();
@@ -32,7 +32,7 @@ namespace threading
 		template <class ITR>
 		void start_wall(ITR _start, const ITR& _end, const uint32_t base_index = 0)
 		{
-			DEV_ASSERT(std::distance(_start, _end) > 0);
+			THREADING_ASSERT(std::distance(_start, _end) > 0);
 			threading::latch ib { std::size_t(std::distance(_start, _end)) };
 			uint32_t		 index = base_index;
 			while (_start != _end)
@@ -58,7 +58,7 @@ namespace threading
 	//--------------------------------------------------------------------------------------------------------------------------------
 
 	// for code that is to be executed on a thread
-	class iThreadContext : public il::vobj
+	class iThreadContext
 	{
 	public:
 		iThreadContext() = default;
@@ -75,6 +75,7 @@ namespace threading
 	public: // api for other threads
 		virtual bool wait();
 
+		virtual ~iThreadContext() = default;
 	protected:
 		void swap(iThreadContext& other);
 

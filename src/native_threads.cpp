@@ -5,7 +5,7 @@ namespace threading
 {
 	ThreadGroup::~ThreadGroup()
 	{
-		DEV_ASSERT(m_joined_threads.load() == 0);
+		THREADING_ASSERT(m_joined_threads.load() == 0);
 	}
 
 	uint32_t ThreadGroup::size()
@@ -15,8 +15,8 @@ namespace threading
 
 	void ThreadGroup::start_one(const uint32_t index, iThreadContext* handler, threading::latch* init_barrier)
 	{
-		DEV_ASSERT(handler != nullptr);
-		DEV_ASSERT(handler->m_handle.joinable() == false);
+		THREADING_ASSERT(handler != nullptr);
+		THREADING_ASSERT(handler->m_handle.joinable() == false);
 
 		std::thread t = std::thread([this, handler, index, init_barrier]() {
 			handler->init(this, index);
@@ -33,7 +33,7 @@ namespace threading
 	}
 	void ThreadGroup::join_one(iThreadContext* handler)
 	{
-		DEV_ASSERT(handler != nullptr);
+		THREADING_ASSERT(handler != nullptr);
 		if (handler->m_handle.joinable())
 			handler->m_handle.join();
 	}

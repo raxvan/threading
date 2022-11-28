@@ -7,7 +7,7 @@ void test_async_pipe1()
 {
 	using namespace std::chrono_literals;
 
-	core::async_pipe<uint64_t> p;
+	threading::async_pipe<uint64_t> p;
 
 	std::atomic<std::size_t> count_values { 0 };
 
@@ -62,7 +62,7 @@ void test_async_pipe2()
 {
 	using namespace std::chrono_literals;
 
-	core::async_pipe<uint64_t> p;
+	threading::async_pipe<uint64_t> p;
 
 	std::atomic<std::size_t> count_values { 0 };
 
@@ -124,7 +124,7 @@ void test_async_pipe3()
 {
 	using namespace std::chrono_literals;
 
-	core::async_pipe<uint64_t> p;
+	threading::async_pipe<uint64_t> p;
 
 	std::atomic<std::size_t> count { 0 };
 

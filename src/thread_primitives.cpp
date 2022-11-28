@@ -5,13 +5,13 @@ namespace threading
 {
 	barrier::barrier(const uint32_t group_size)
 	{
-		DEV_ASSERT(group_size > 0);
+		THREADING_ASSERT(group_size > 0);
 		m_group_size = group_size;
 	}
 
 	void barrier::reset_group_size(const uint32_t group_size)
 	{
-		DEV_ASSERT(group_size > 0);
+		THREADING_ASSERT(group_size > 0);
 
 		{
 			std::unique_lock<std::mutex> lk(m_lock);
@@ -157,7 +157,7 @@ namespace threading
 	{
 		if (broken() == false)
 		{
-			DEV_ASSERT(m_count == m_group_size);
+			THREADING_ASSERT(m_count == m_group_size);
 			m_count = 0;
 			m_cv_wait.notify_all();
 		}

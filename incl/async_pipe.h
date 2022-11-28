@@ -124,7 +124,7 @@ namespace threading
 
 	private:
 		template <class F>
-		decl_force_inline void _consume_locked(const F& _func)
+		inline void _consume_locked(const F& _func)
 		{
 			do
 			{
@@ -139,7 +139,7 @@ namespace threading
 				m_active_count--;
 			} while (m_items.size() > 0);
 		}
-		decl_force_inline bool _wait_locked()
+		inline bool _wait_locked()
 		{
 			bool stay = true;
 
