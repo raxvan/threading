@@ -9,51 +9,51 @@ void test_async_pipe1()
 
 	threading::async_pipe<uint64_t> p;
 
-	std::atomic<std::size_t> count_values { 0 };
-
-	std::mutex				create_lock;
-	std::condition_variable cv;
+	std::atomic<uint64_t> sum { 0 };
+	std::atomic<std::size_t> count_values{ 0 };
 
 	std::array<std::thread, 32> threads;
 
-	create_lock.lock();
-	for (std::size_t i = 0; i < threads.size(); i++)
+	auto consume_item = [&](const uint64_t value) {
+
+		sum += value;
+
+		if (sum % 2 == 0)
+			std::this_thread::sleep_for(13ms);
+		else
+			std::this_thread::sleep_for(10ms);
+	};
 	{
-		auto t = std::thread([&]() {
-			{
-				std::unique_lock<std::mutex> lk(create_lock);
-				cv.wait(lk);
-			}
-			auto start = std::chrono::high_resolution_clock::now();
-			p.consume_or_wait(true, [&](const uint64_t value) {
-				std::this_thread::sleep_for(100ms);
-				if (value < 20)
-					p.push_back(value + 1);
+		threading::latch l{ threads.size() + 1 };
+
+		for (std::size_t i = 0; i < threads.size(); i++)
+		{
+			auto t = std::thread([&]() {
+				l.arrive_and_wait();
+				if (i % 2 == 0)
+				{
+					while (p.consume_loop(consume_item) == true);
+				}
 				else
-					count_values++;
+				{
+					p.consume_loop_or_wait(consume_item);
+				}
 			});
-			auto									  end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double, std::milli> elapsed = end - start;
-			TEST_ASSERT(elapsed.count() > 1500);
-		});
 
-		threads[i].swap(t);
+			threads[i].swap(t);
+		}
+		l.arrive_and_wait();
 	}
-	create_lock.unlock();
-	std::this_thread::sleep_for(500ms);
-	cv.notify_all();
 
-	std::size_t vc = threads.size() / 2;
+	std::size_t vc = 1000;
 	for (std::size_t i = 0; i < vc; i++)
-		p.push_back(0);
+		p.push_back(i);
 
-	auto start = std::chrono::high_resolution_clock::now();
-	p.wait_empty();
-	auto									  end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double, std::milli> elapsed = end - start;
-	TEST_ASSERT(elapsed.count() > 1500);
+	p.wait_for_empty();
 
-	TEST_ASSERT(count_values.load() == vc);
+	TEST_ASSERT(sum.load() == (vc * (vc - 1)) / 2);
+
+	p.evict(10);
 	for (std::size_t i = 0; i < threads.size(); i++)
 		threads[i].join();
 }
@@ -64,110 +64,61 @@ void test_async_pipe2()
 
 	threading::async_pipe<uint64_t> p;
 
-	std::atomic<std::size_t> count_values { 0 };
-
-	std::mutex				create_lock;
-	std::condition_variable cv;
+	std::atomic<uint64_t> count{ 0 };
+	std::atomic<std::size_t> count_values{ 0 };
 
 	std::array<std::thread, 32> threads;
 
-	create_lock.lock();
-	for (std::size_t i = 0; i < threads.size(); i++)
+	auto consume_item = [&](const uint64_t value) {
+
+		if (value < 10)
+			p.push_back(value + 1);
+		else
+			count++;
+
+		if (count % 2 == 0)
+			std::this_thread::sleep_for(13ms);
+		else
+			std::this_thread::sleep_for(10ms);
+	};
+
 	{
-		auto t = std::thread([&]() {
-			{
-				std::unique_lock<std::mutex> lk(create_lock);
-				cv.wait(lk);
-			}
-			auto start = std::chrono::high_resolution_clock::now();
-			p.consume_or_wait(true, [&](const uint64_t value) {
-				std::this_thread::sleep_for(100ms);
-				if (value < 20)
-					p.push_back(value + 1);
+		threading::latch l{ threads.size() + 1 };
+
+		for (std::size_t i = 0; i < threads.size(); i++)
+		{
+			auto t = std::thread([&, i]() {
+				l.arrive_and_wait();
+				if (i % 2 == 0)
+				{
+					while (p.consume_loop(consume_item) == true);
+				}
 				else
-					count_values++;
+				{
+					p.consume_loop_or_wait(consume_item);
+				}
 			});
-			auto									  end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double, std::milli> elapsed = end - start;
-			TEST_ASSERT(elapsed.count() > 1500);
-		});
 
-		threads[i].swap(t);
+			threads[i].swap(t);
+		}
+		l.arrive_and_wait();
 	}
-	create_lock.unlock();
-	std::this_thread::sleep_for(500ms);
 
-	std::size_t vc = threads.size() / 2;
+	std::size_t vc = 100;
 	for (std::size_t i = 0; i < vc; i++)
 		p.push_back(0);
 
-	cv.notify_all();
+	p.wait_for_empty();
 
-	auto start = std::chrono::high_resolution_clock::now();
-	p.consume_or_wait(true, [&](const uint64_t value) {
-		std::this_thread::sleep_for(75ms);
-		if (value < 20)
-			p.push_back(value + 1);
-		else
-			count_values++;
-	});
-	auto									  end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double, std::milli> elapsed = end - start;
-	TEST_ASSERT(elapsed.count() > 1500);
+	TEST_ASSERT(count.load() == vc);
 
-	TEST_ASSERT(count_values.load() == vc);
+	p.evict();
 	for (std::size_t i = 0; i < threads.size(); i++)
 		threads[i].join();
 }
 
-void test_async_pipe3()
+void test_async_pipe()
 {
-	using namespace std::chrono_literals;
-
-	threading::async_pipe<uint64_t> p;
-
-	std::atomic<std::size_t> count { 0 };
-
-	std::mutex				create_lock;
-	std::condition_variable cv;
-
-	std::array<std::thread, 32> threads;
-
-	create_lock.lock();
-	for (std::size_t i = 0; i < threads.size(); i++)
-	{
-		auto t = std::thread([&]() {
-			{
-				std::unique_lock<std::mutex> lk(create_lock);
-				cv.wait(lk);
-			}
-			auto start = std::chrono::high_resolution_clock::now();
-			p.consume_or_wait(true, [&](const uint64_t value) {
-				std::this_thread::sleep_for(100ms);
-				if (value < 20)
-					p.push_back(value + 1);
-			});
-			auto									  end = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<double, std::milli> elapsed = end - start;
-			TEST_ASSERT(elapsed.count() < 150);
-		});
-
-		threads[i].swap(t);
-	}
-	create_lock.unlock();
-	std::this_thread::sleep_for(500ms);
-	cv.notify_all();
-
-	std::size_t vc = threads.size() / 2;
-	for (std::size_t i = 0; i < vc; i++)
-		p.push_back(0);
-	std::this_thread::sleep_for(50ms);
-	auto start = std::chrono::high_resolution_clock::now();
-	p.clear(10);
-	auto									  end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double, std::milli> elapsed = end - start;
-	TEST_ASSERT(elapsed.count() < 150);
-
-	for (std::size_t i = 0; i < threads.size(); i++)
-		threads[i].join();
+	TEST_FUNCTION(test_async_pipe1);
+	TEST_FUNCTION(test_async_pipe2);
 }
