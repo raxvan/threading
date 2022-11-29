@@ -75,6 +75,15 @@ namespace threading
 				m_waiting_threads.wait(m_first_lock, m_second_lock);
 			return m_evict == false;
 		}
+		bool empty()
+		{
+			std::lock_guard<threading::spin_lock> _(m_first_lock);
+			if (m_items.size() == 0 && m_active_consumers == 0)
+				return true;
+			if (m_evict)
+				return true;
+			return false;
+		}
 	public:
 		void evict(const uint32_t sleep_interval_ms = 0)
 		{
