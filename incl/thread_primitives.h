@@ -113,7 +113,7 @@ namespace threading
 	//--------------------------------------------------------------------------------------------------------------------------------
 
 	struct barrier
-	// similar to a latch, but barrier resets after each arrive_and_wait();
+	// similar to a latch, but barrier resets after group reaches arrive_and_wait();
 	{
 	public:
 		barrier(const barrier&) = delete;
@@ -143,7 +143,7 @@ namespace threading
 
 	struct swap_barrier
 	// similar to a barrier, all threads need (except one) to arrive_and_wait, all threads will start when all threads wait
-	// the "odd" thread will call arrive_and_lock then unlock, this combination is similar to arrive_and_wait(), but work can be done
+	// the "odd" thread will call arrive_and_lock then unlock, this call sequance is similar to arrive_and_wait(), in between
 	{
 	public:
 		swap_barrier(const uint32_t group_size); // max(uint32_t) / 4 max group

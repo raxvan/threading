@@ -10,6 +10,7 @@ namespace threading
 	struct unique_latch_events
 	// when two threads meet with the same string they both continue;
 	// the "unique" stands for "slow", one time use
+	// looking back on this... this i dumb
 	{
 	public:
 		// TODO: arrive_and_continue(const dev::static_string& s)

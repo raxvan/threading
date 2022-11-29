@@ -46,12 +46,6 @@ namespace threading
 		}
 
 	protected:
-		/*
-		virtual void run_handler_async(iThreadContext* handler, const uint32_t index);
-		virtual void enter_native_thread(const uint32_t index);
-		virtual void exit_native_thread(const uint32_t index);
-		*/
-	protected:
 		std::atomic<uint32_t> m_joined_threads { 0 };
 	};
 
