@@ -88,7 +88,7 @@ namespace threading
 		latch& operator=(latch&&) = delete;
 
 	public:
-		explicit latch(const uint32_t group_size);
+		explicit latch(const std::size_t group_size);
 
 	public:
 		~latch(); // safely destroys latch
@@ -97,17 +97,17 @@ namespace threading
 		// all thread are blocked here until the number of threads waiting is equal with group size
 		// does not reset anything
 
-		inline uint32_t group_size() const
+		inline uint_fast32_t group_size() const
 		{
 			return m_group_size;
 		}
 
 	protected:
-		std::atomic<uint32_t>	m_entered_count { 0 };
-		std::mutex				m_lock;
-		std::condition_variable m_cv;
-		uint32_t				m_count = 0;
-		uint32_t				m_group_size = 0;
+		std::atomic<uint_fast32_t>	m_entered_count { 0 };
+		std::mutex					m_lock;
+		std::condition_variable		m_cv;
+		uint_fast32_t				m_count = 0;
+		uint_fast32_t				m_group_size = 0;
 	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------

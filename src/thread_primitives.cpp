@@ -68,8 +68,8 @@ namespace threading
 
 	//--------------------------------------------------------------------------------------------------------------------------------
 
-	latch::latch(const uint32_t group_size)
-		: m_group_size(group_size)
+	latch::latch(const std::size_t group_size)
+		: m_group_size(uint_fast32_t(group_size))
 	{
 	}
 
