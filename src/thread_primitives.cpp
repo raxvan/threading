@@ -3,6 +3,49 @@
 
 namespace threading
 {
+
+	//--------------------------------------------------------------------------------------------------------------------------------
+	constexpr uint32_t _multi_read_lock_pivot = 2147483648;
+
+	void mr_spin_lock::write_lock()
+	{
+		m_readers.fetch_add(_multi_read_lock_pivot, std::memory_order_acquire);
+
+		while (m_readers.load(std::memory_order_relaxed) != _multi_read_lock_pivot)
+		{
+			//yield ?
+		}
+	}
+	void mr_spin_lock::write_unlock()
+	{
+		m_readers.fetch_sub(_multi_read_lock_pivot, std::memory_order_release);
+	}
+
+	void mr_spin_lock::lock()
+	{
+		while(true)
+		{
+			uint32_t pv = m_readers.fetch_add(1, std::memory_order_acquire);
+
+			if(pv < _multi_read_lock_pivot)
+				break;
+
+			m_readers.fetch_sub(1, std::memory_order_release);
+
+			while (m_readers.load(std::memory_order_relaxed) >= _multi_read_lock_pivot)
+			{
+				//yield ?
+			}
+		}
+	}
+
+	void mr_spin_lock::unlock()
+	{
+		m_readers.fetch_sub(1, std::memory_order_release);
+	}
+
+	//--------------------------------------------------------------------------------------------------------------------------------
+
 	barrier::barrier(const uint32_t group_size)
 	{
 		THREADING_ASSERT(group_size > 0);

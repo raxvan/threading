@@ -38,6 +38,22 @@ namespace threading
 		}
 	};
 
+	//--------------------------------------------------------------------------------------------------------------------------------
+
+	//one writer, multiple readers lock:
+	struct mr_spin_lock //limited to 2B readers, and 1 writer
+	{
+	public:
+		void write_lock();
+		void write_unlock();
+
+	public:
+		//for readers
+		void lock();
+		void unlock();
+	protected:
+		std::atomic<uint32_t> m_readers{0};
+	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------
 
