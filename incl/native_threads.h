@@ -45,6 +45,8 @@ namespace threading
 				join_one(*_start++);
 		}
 
+
+
 	protected:
 		std::atomic<uint32_t> m_joined_threads { 0 };
 	};

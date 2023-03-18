@@ -17,4 +17,15 @@ namespace threading
 
 	//--------------------------------------------------------------------------------------------------------------------------------
 
+	struct utils
+	{
+		template <class F>
+		inline static void start_native(std::thread& out, F&& _func)
+		{
+			std::thread tmp(std::move(_func));
+			THREADING_ASSERT(out.joinable() == false);
+			out.swap(tmp);
+		}
+	};
+
 }

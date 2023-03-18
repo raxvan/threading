@@ -57,6 +57,75 @@ namespace threading
 
 	//--------------------------------------------------------------------------------------------------------------------------------
 
+	template <class T>
+	struct spin_index
+	{
+	public:
+		using index_t = T;
+		inline static bool isset(const index_t data_value)
+		{
+			return data_value != std::numeric_limits<index_t>::max();
+		}
+		inline static bool islocked(const index_t data_value)
+		{
+			return data_value == std::numeric_limits<index_t>::max();
+		}
+
+		inline static bool valid(const index_t data_value)
+		{
+			return data_value < (std::numeric_limits<index_t>::max() - 1);
+		}
+
+	public:
+		spin_index() = default;
+		spin_index(const index_t index)
+			:data{index}
+		{
+			THREADING_ASSERT(isset(index));
+		}
+
+		inline index_t lock() noexcept
+		{
+			while (true)
+			{
+				index_t data_value = data.exchange(std::numeric_limits<index_t>::max(), std::memory_order_acquire);
+				if(isset(data_value))
+					return data_value;
+
+				do
+				{
+					// yield for hyperthreading improvements:
+					//__builtin_ia32_pause
+				}
+				while (isset(data.load(std::memory_order_relaxed)) == false);
+			}
+		}
+
+		inline index_t trylock() noexcept
+		{
+			return data.exchange(std::numeric_limits<index_t>::max(), std::memory_order_acquire);
+		}
+
+		inline void unlock(const index_t data_value) noexcept
+		{
+			data.store(data_value, std::memory_order_release);
+		}
+
+		inline index_t peek() noexcept
+		{
+			while (true)
+			{
+				index_t data_value = data.load(std::memory_order_relaxed);
+				if(isset(data_value))
+					return data_value;
+			}
+		}
+	public:
+		std::atomic<index_t> data = { std::numeric_limits<index_t>::max() - 1 };
+	};
+
+	//--------------------------------------------------------------------------------------------------------------------------------
+
 	struct semaphore
 	{
 	public:
