@@ -15,6 +15,8 @@ namespace threading
 
 	struct spin_lock
 	{
+		using lock_guard = std::lock_guard<spin_lock>;
+
 		std::atomic<bool> flag = { false };
 
 		inline void lock() noexcept
@@ -36,6 +38,8 @@ namespace threading
 		{
 			flag.store(false, std::memory_order_release);
 		}
+
+
 	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------
@@ -76,6 +80,20 @@ namespace threading
 			return data_value < (std::numeric_limits<index_t>::max() - 1);
 		}
 
+		struct lock_guard
+		{
+			spin_index<T>& 	lock;
+			index_t 		data;
+			lock_guard(spin_index<T>& spi)
+				:lock(spi)
+				,data(spi.lock())
+			{
+			}
+			~lock_guard()
+			{
+				lock.unlock(data);
+			}
+		};
 	public:
 		spin_index() = default;
 		spin_index(const index_t index)
