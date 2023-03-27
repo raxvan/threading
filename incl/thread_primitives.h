@@ -28,8 +28,7 @@ namespace threading
 
 				while (flag.load(std::memory_order_relaxed))
 				{
-					// yield for hyperthreading improvements:
-					//__builtin_ia32_pause
+					// threading_impl_spin_yield();
 				}
 			}
 		}
@@ -39,13 +38,17 @@ namespace threading
 			flag.store(false, std::memory_order_release);
 		}
 
+		inline lock_guard guard() noexcept
+		{
+			return lock_guard(*this);
+		}
 
 	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------
 
-	//one writer, multiple readers lock:
-	struct mr_spin_lock //limited to 2B readers, and 1 writer
+	//one writer, multiple readers lock (limited to 2B readers, and 1 writer)
+	struct mr_spin_lock
 	{
 	public:
 		void write_lock();
@@ -62,84 +65,125 @@ namespace threading
 	//--------------------------------------------------------------------------------------------------------------------------------
 
 	template <class T>
-	struct spin_index
+	struct spin_value_lock
 	{
 	public:
-		using index_t = T;
-		inline static bool isset(const index_t data_value)
-		{
-			return data_value != std::numeric_limits<index_t>::max();
-		}
-		inline static bool islocked(const index_t data_value)
-		{
-			return data_value == std::numeric_limits<index_t>::max();
-		}
+		static_assert(std::is_integral<T>::value, "The provided type must be an integral number (no floating-point types allowed).");
 
-		inline static bool valid(const index_t data_value)
-		{
-			return data_value < (std::numeric_limits<index_t>::max() - 1);
-		}
+		using value_t = T;
 
+		inline static bool value_set(const value_t data_value)
+		{
+			return data_value != std::numeric_limits<value_t>::max();
+		}
+		inline static bool value_locked(const value_t data_value)
+		{
+			return data_value == std::numeric_limits<value_t>::max();
+		}
+		inline static bool value_default(const value_t data_value)
+		{
+			THREADING_ASSERT(value_locked(data_value) == false);
+			return data_value == (std::numeric_limits<value_t>::max() - 1);
+		}
+	public:
 		struct lock_guard
 		{
-			spin_index<T>& 	lock;
-			index_t 		data;
-			lock_guard(spin_index<T>& spi)
+			spin_value_lock<T>& 	lock;
+			value_t 				value;
+			lock_guard(spin_value_lock<T>& spi)
 				:lock(spi)
-				,data(spi.lock())
+				,value(spi.lock())
 			{
 			}
 			~lock_guard()
 			{
-				lock.unlock(data);
+				lock.unlock(value);
 			}
 		};
 	public:
-		spin_index() = default;
-		spin_index(const index_t index)
+		spin_value_lock() = default;
+		spin_value_lock(const value_t index)
 			:data{index}
 		{
-			THREADING_ASSERT(isset(index));
+			THREADING_ASSERT(value_set(index));
 		}
 
-		inline index_t lock() noexcept
+		inline value_t lock() noexcept
 		{
 			while (true)
 			{
-				index_t data_value = data.exchange(std::numeric_limits<index_t>::max(), std::memory_order_acquire);
-				if(isset(data_value))
+				value_t data_value = data.exchange(std::numeric_limits<value_t>::max(), std::memory_order_acquire);
+				if(value_set(data_value))
 					return data_value;
-
 				do
 				{
-					// yield for hyperthreading improvements:
-					//__builtin_ia32_pause
+					//threading_impl_spin_yield();
 				}
-				while (isset(data.load(std::memory_order_relaxed)) == false);
+				while (value_locked(data.load(std::memory_order_relaxed)));
 			}
 		}
 
-		inline index_t trylock() noexcept
+		template <class F>
+		//bool _func(value_t); will wait until _func() returns true, _func is called in in locked state;
+		inline value_t lock_if(const F& _func) noexcept
 		{
-			return data.exchange(std::numeric_limits<index_t>::max(), std::memory_order_acquire);
+			while (true)
+			{
+				value_t data_value = data.exchange(std::numeric_limits<value_t>::max(), std::memory_order_acquire);
+				if(value_locked(data_value))
+				{
+					do
+					{
+						// yield for hyperthreading improvements:
+						//__builtin_ia32_pause
+					}
+					while (value_locked(data.load(std::memory_order_relaxed)));
+				}
+				else if(_func(data_value))
+				{
+					THREADING_ASSERT(value_set(data.load(std::memory_order_relaxed)));
+					return data_value;
+				}
+				else
+				{
+					THREADING_ASSERT(value_set(data.load(std::memory_order_relaxed)));
+					data.store(data_value, std::memory_order_release);
+				}
+			}
 		}
 
-		inline void unlock(const index_t data_value) noexcept
+
+		inline value_t trylock() noexcept
+		{
+			return data.exchange(std::numeric_limits<value_t>::max(), std::memory_order_acquire);
+		}
+
+		inline void unlock(const value_t data_value) noexcept
 		{
 			data.store(data_value, std::memory_order_release);
 		}
 
-		inline index_t peek() noexcept
+		inline value_t peek() const noexcept
 		{
 			while (true)
 			{
-				index_t data_value = data.load(std::memory_order_relaxed);
-				if(isset(data_value))
+				value_t data_value = data.load(std::memory_order_relaxed);
+				if(value_set(data_value))
 					return data_value;
 			}
 		}
+
+		inline bool islocked() const noexcept
+		{
+			return value_locked(data.load(std::memory_order_relaxed));
+		}
+
+		inline lock_guard guard() noexcept
+		{
+			return lock_guard(*this);
+		}
 	public:
-		std::atomic<index_t> data = { std::numeric_limits<index_t>::max() - 1 };
+		std::atomic<value_t> data = { std::numeric_limits<value_t>::max() - 1 };
 	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------
