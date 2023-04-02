@@ -9,24 +9,22 @@ void test_async_pipe1()
 
 	threading::async_pipe<uint64_t> p;
 
-	std::atomic<uint64_t> sum { 0 };
-	std::atomic<std::size_t> count_values{ 0 };
+	std::atomic<uint64_t>	 sum { 0 };
+	std::atomic<std::size_t> count_values { 0 };
 
 	std::array<std::thread, 32> threads;
-	std::atomic<bool> closing{ false };
+	std::atomic<bool>			closing { false };
 
 	auto consume_item = [&](const uint64_t value) {
-
 		sum += value;
 
 		if (sum % 2 == 0)
 			std::this_thread::sleep_for(13ms);
 		else
 			std::this_thread::sleep_for(10ms);
-
 	};
 	{
-		threading::latch l{ threads.size() + 1 };
+		threading::latch l { threads.size() + 1 };
 
 		for (std::size_t i = 0; i < threads.size(); i++)
 		{
@@ -34,7 +32,8 @@ void test_async_pipe1()
 				l.arrive_and_wait();
 				if (i % 2 == 0)
 				{
-					while (p.consume_loop(consume_item) == true);
+					while (p.consume_loop(consume_item) == true)
+						;
 					TEST_ASSERT(closing.load() == true);
 				}
 				else
@@ -68,14 +67,13 @@ void test_async_pipe2()
 
 	threading::async_pipe<uint64_t> p;
 
-	std::atomic<uint64_t> count{ 0 };
-	std::atomic<std::size_t> count_values{ 0 };
+	std::atomic<uint64_t>	 count { 0 };
+	std::atomic<std::size_t> count_values { 0 };
 
 	std::array<std::thread, 32> threads;
-	std::atomic<bool> closing {false};
+	std::atomic<bool>			closing { false };
 
 	auto consume_item = [&](const uint64_t value) {
-
 		if (value < 10)
 			p.push_back(value + 1);
 		else
@@ -88,7 +86,7 @@ void test_async_pipe2()
 	};
 
 	{
-		threading::latch l{ threads.size() + 1 };
+		threading::latch l { threads.size() + 1 };
 
 		for (std::size_t i = 0; i < threads.size(); i++)
 		{
@@ -96,7 +94,8 @@ void test_async_pipe2()
 				l.arrive_and_wait();
 				if (i % 2 == 0)
 				{
-					while (p.consume_loop(consume_item) == true);
+					while (p.consume_loop(consume_item) == true)
+						;
 					TEST_ASSERT(closing.load() == true);
 				}
 				else

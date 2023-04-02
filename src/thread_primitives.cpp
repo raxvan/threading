@@ -13,7 +13,7 @@ namespace threading
 
 		while (m_readers.load(std::memory_order_relaxed) != _multi_read_lock_pivot)
 		{
-			//yield ?
+			// yield ?
 		}
 	}
 	void mr_spin_lock::write_unlock()
@@ -23,18 +23,18 @@ namespace threading
 
 	void mr_spin_lock::lock()
 	{
-		while(true)
+		while (true)
 		{
 			uint32_t pv = m_readers.fetch_add(1, std::memory_order_acquire);
 
-			if(pv < _multi_read_lock_pivot)
+			if (pv < _multi_read_lock_pivot)
 				break;
 
 			m_readers.fetch_sub(1, std::memory_order_release);
 
 			while (m_readers.load(std::memory_order_relaxed) >= _multi_read_lock_pivot)
 			{
-				//yield ?
+				// yield ?
 			}
 		}
 	}

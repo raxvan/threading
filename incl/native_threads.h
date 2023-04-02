@@ -45,8 +45,6 @@ namespace threading
 				join_one(*_start++);
 		}
 
-
-
 	protected:
 		std::atomic<uint32_t> m_joined_threads { 0 };
 	};
@@ -72,6 +70,7 @@ namespace threading
 		virtual bool wait();
 
 		virtual ~iThreadContext() = default;
+
 	protected:
 		void swap(iThreadContext& other);
 

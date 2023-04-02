@@ -32,7 +32,7 @@ namespace threading
 		{
 			// second to arrive
 			{
-				auto*						 latch_ptr = itr->latch;
+				auto* latch_ptr = itr->latch;
 				THREADING_ASSERT(latch_ptr != nullptr);
 				std::unique_lock<std::mutex> _(latch_ptr->mutex);
 				latch_ptr->cv.notify_one();

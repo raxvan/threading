@@ -3,7 +3,6 @@
 #include <threading.h>
 #include <array>
 
-
 void test_multi_read_spin_lock()
 {
 	std::array<std::thread, 64> threads;
@@ -16,7 +15,7 @@ void test_multi_read_spin_lock()
 	}
 
 	threading::mr_spin_lock ml;
-	std::atomic<bool> spin{ true };
+	std::atomic<bool>		spin { true };
 
 	auto checksum = [&](std::size_t index) {
 		int64_t r = 0;
@@ -28,14 +27,13 @@ void test_multi_read_spin_lock()
 		return r;
 	};
 
-	for(std::size_t i = 0; i < threads.size();i++)
+	for (std::size_t i = 0; i < threads.size(); i++)
 		TEST_ASSERT(checksum(i) == 0);
 
 	{
-		threading::latch l{ uint32_t(threads.size() + 1) };
+		threading::latch l { uint32_t(threads.size() + 1) };
 
 		auto thread_job = [&](const std::size_t index) {
-			
 			while (spin.load())
 			{
 				uint64_t r = 0;
@@ -45,7 +43,6 @@ void test_multi_read_spin_lock()
 				}
 				TEST_ASSERT(r == 0);
 			}
-
 		};
 
 		for (std::size_t i = 0; i < threads.size(); i++)
@@ -53,7 +50,7 @@ void test_multi_read_spin_lock()
 			auto t = std::thread([&, index = i]() {
 				l.arrive_and_wait();
 				thread_job(index);
-				});
+			});
 			threads[i].swap(t);
 		}
 
@@ -78,7 +75,4 @@ void test_multi_read_spin_lock()
 		for (std::size_t i = 0; i < threads.size(); i++)
 			threads[i].join();
 	}
-
-
-
 }

@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "threading_config.h"
 
 #include <thread>
@@ -42,12 +41,11 @@ namespace threading
 		{
 			return lock_guard(*this);
 		}
-
 	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------
 
-	//one writer, multiple readers lock (limited to 2B readers, and 1 writer)
+	// one writer, multiple readers lock (limited to 2B readers, and 1 writer)
 	struct mr_spin_lock
 	{
 	public:
@@ -55,11 +53,12 @@ namespace threading
 		void write_unlock();
 
 	public:
-		//for readers
+		// for readers
 		void lock();
 		void unlock();
+
 	protected:
-		std::atomic<uint32_t> m_readers{0};
+		std::atomic<uint32_t> m_readers { 0 };
 	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------
@@ -85,14 +84,15 @@ namespace threading
 			THREADING_ASSERT(value_locked(data_value) == false);
 			return data_value == (std::numeric_limits<value_t>::max() - 1);
 		}
+
 	public:
 		struct lock_guard
 		{
-			spin_value_lock<T>& 	lock;
-			value_t 				value;
+			spin_value_lock<T>& lock;
+			value_t				value;
 			lock_guard(spin_value_lock<T>& spi)
-				:lock(spi)
-				,value(spi.lock())
+				: lock(spi)
+				, value(spi.lock())
 			{
 			}
 			~lock_guard()
@@ -100,10 +100,11 @@ namespace threading
 				lock.unlock(value);
 			}
 		};
+
 	public:
 		spin_value_lock() = default;
 		spin_value_lock(const value_t index)
-			:data{index}
+			: data { index }
 		{
 			THREADING_ASSERT(value_set(index));
 		}
@@ -113,33 +114,31 @@ namespace threading
 			while (true)
 			{
 				value_t data_value = data.exchange(std::numeric_limits<value_t>::max(), std::memory_order_acquire);
-				if(value_set(data_value))
+				if (value_set(data_value))
 					return data_value;
 				do
 				{
-					//threading_impl_spin_yield();
-				}
-				while (value_locked(data.load(std::memory_order_relaxed)));
+					// threading_impl_spin_yield();
+				} while (value_locked(data.load(std::memory_order_relaxed)));
 			}
 		}
 
 		template <class F>
-		//bool _func(value_t); will wait until _func() returns true, _func is called in in locked state;
+		// bool _func(value_t); will wait until _func() returns true, _func is called in in locked state;
 		inline value_t lock_if(const F& _func) noexcept
 		{
 			while (true)
 			{
 				value_t data_value = data.exchange(std::numeric_limits<value_t>::max(), std::memory_order_acquire);
-				if(value_locked(data_value))
+				if (value_locked(data_value))
 				{
 					do
 					{
 						// yield for hyperthreading improvements:
 						//__builtin_ia32_pause
-					}
-					while (value_locked(data.load(std::memory_order_relaxed)));
+					} while (value_locked(data.load(std::memory_order_relaxed)));
 				}
-				else if(_func(data_value))
+				else if (_func(data_value))
 				{
 					THREADING_ASSERT(value_set(data.load(std::memory_order_relaxed)));
 					return data_value;
@@ -151,7 +150,6 @@ namespace threading
 				}
 			}
 		}
-
 
 		inline value_t trylock() noexcept
 		{
@@ -168,7 +166,7 @@ namespace threading
 			while (true)
 			{
 				value_t data_value = data.load(std::memory_order_relaxed);
-				if(value_set(data_value))
+				if (value_set(data_value))
 					return data_value;
 			}
 		}
@@ -182,6 +180,7 @@ namespace threading
 		{
 			return lock_guard(*this);
 		}
+
 	public:
 		std::atomic<value_t> data = { std::numeric_limits<value_t>::max() - 1 };
 	};
@@ -250,11 +249,11 @@ namespace threading
 		}
 
 	protected:
-		std::atomic<uint_fast32_t>	m_entered_count { 0 };
-		std::mutex					m_lock;
-		std::condition_variable		m_cv;
-		uint_fast32_t				m_count = 0;
-		uint_fast32_t				m_group_size = 0;
+		std::atomic<uint_fast32_t> m_entered_count { 0 };
+		std::mutex				   m_lock;
+		std::condition_variable	   m_cv;
+		uint_fast32_t			   m_count = 0;
+		uint_fast32_t			   m_group_size = 0;
 	};
 
 	//--------------------------------------------------------------------------------------------------------------------------------
