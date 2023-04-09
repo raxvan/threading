@@ -4,7 +4,6 @@
 
 namespace threading
 {
-	extern void sleep_thread(const uint32_t ms_time);
 
 	// for multiple producers/multiple consumers of data T & multiple waiting threads
 	// low overhead when prodicing/consuming, consumers go to sleep when idle
@@ -27,27 +26,28 @@ namespace threading
 			{
 				_consume_all_locked(_func);
 			} while (_wait_locked());
+			_end_consumer(false);
 		}
 
 		template <class F>
 		// void(T&&);
 		// try to get, immediately return when no items are available
 		// returns false when evicted
-		bool consume_loop(const F& _func)
+		bool consume_loop(const F& _func, const bool wait_for_empty = false)
 		{
 			std::lock_guard<threading::spin_lock> _(m_first_lock);
 			_consume_all_locked(_func);
-			return m_evict == false;
+			return _end_consumer(wait_for_empty);
 		}
 		template <class F>
 		// bool(T&&)
 		// try to get, immediately return when no items are available
 		// returns false when evicted
-		bool consume_while(const F& _func)
+		bool consume_while(const F& _func, const bool wait_for_empty = false)
 		{
 			std::lock_guard<threading::spin_lock> _(m_first_lock);
 			_consume_while_locked(_func);
-			return m_evict == false;
+			return _end_consumer(wait_for_empty);
 		}
 
 	public:
@@ -66,39 +66,52 @@ namespace threading
 			return _notify_consumers();
 		}
 
+		~async_pipe()
+		{
+			std::lock_guard<threading::spin_lock> _(m_first_lock);
+			THREADING_ASSERT(m_active_consumers == 0);
+			THREADING_ASSERT(m_evict_count == 0);
+			THREADING_ASSERT(m_sleeping_threads.awake_all(m_second_lock) == 0);
+			THREADING_ASSERT(m_waiting_threads.awake_all(m_second_lock) == 0);
+		}
 	public: // others:
+
+		//return strue when evicting
 		bool wait_for_empty()
 		{
 			std::lock_guard<threading::spin_lock> _(m_first_lock);
-			if ((m_items.size() > 0 || m_active_consumers > 0) && m_evict == false)
+			if ((m_items.size() > 0 || m_active_consumers > 0))
 				m_waiting_threads.wait(m_first_lock, m_second_lock);
-			return m_evict == false;
+			return _check_evict();
 		}
 		bool empty()
 		{
 			std::lock_guard<threading::spin_lock> _(m_first_lock);
 			if (m_items.size() == 0 && m_active_consumers == 0)
 				return true;
-			if (m_evict)
-				return true;
 			return false;
 		}
 
 	public:
-		void evict(const uint32_t sleep_interval_ms = 0)
+		void evict(const std::size_t evict_count, const uint32_t sleep_interval_ms)
 		{
+			THREADING_ASSERT(evict_count < std::numeric_limits<int_fast16_t>::max());
 			m_first_lock.lock();
-			m_evict = true;
+
+			THREADING_ASSERT(m_evict_count == 0);
+
+			m_evict_count = int_fast16_t(evict_count);
+			
 			while (true)
 			{
 				bool consumers = m_active_consumers > 0;
 				bool sleepers = m_sleeping_threads.awake_all(m_second_lock) > 0;
 				bool waiters = m_waiting_threads.awake_all(m_second_lock) > 0;
 
-				if (consumers || sleepers || waiters)
+				if ((consumers || sleepers || waiters) && m_evict_count > 0)
 				{
 					m_first_lock.unlock();
-					threading::sleep_thread(sleep_interval_ms);
+					threading::utils::sleep_thread(sleep_interval_ms);
 					m_first_lock.lock();
 				}
 				else
@@ -106,6 +119,7 @@ namespace threading
 					break;
 				}
 			}
+
 			m_first_lock.unlock();
 		}
 
@@ -121,10 +135,35 @@ namespace threading
 			m_first_lock.lock();
 			m_active_consumers--;
 		}
+		inline bool _check_evict() const
+		{
+			return m_evict_count > 0;
+		}
+		inline bool _end_consumer(const bool wait_for_empty)
+		{
+			bool no_evict = (m_evict_count <= 0);
+			if (no_evict == false)
+			{
+				m_evict_count--;
+				while (m_evict_count > 0)
+				{
+					m_first_lock.unlock();
+					std::this_thread::yield();
+					m_first_lock.lock();
+				}
+			}
+			if (no_evict && wait_for_empty)
+			{
+				if ((m_items.size() > 0 || m_active_consumers > 0))
+					m_waiting_threads.wait(m_first_lock, m_second_lock);
+			}
+			return no_evict;
+		}
+
 		template <class F>
 		inline void _consume_all_locked(const F& _func)
 		{
-			while (m_items.size() > 0 && m_evict == false)
+			while (m_items.size() > 0 && m_evict_count == 0)
 			{
 				T out = std::move(m_items.back());
 				_consume_one_begin();
@@ -141,7 +180,7 @@ namespace threading
 		template <class F>
 		inline void _consume_while_locked(const F& _func)
 		{
-			while (m_items.size() > 0 && m_evict == false)
+			while (m_items.size() > 0 && m_evict_count == 0)
 			{
 				T out = std::move(m_items.back());
 				_consume_one_begin();
@@ -160,14 +199,14 @@ namespace threading
 
 		inline bool _wait_locked()
 		{
-			if (m_evict)
+			if (_check_evict())
 				return false;
 			m_sleeping_threads.wait(m_first_lock, m_second_lock);
 			return true;
 		}
 		inline bool _notify_consumers()
 		{
-			if (m_evict)
+			if (_check_evict())
 				return false;
 
 			m_sleeping_threads.awake_one(m_second_lock);
@@ -177,8 +216,9 @@ namespace threading
 	protected:
 		threading::spin_lock m_first_lock;
 		std::vector<T>		 m_items;
+		int_fast16_t		 m_evict_count = 0;
 		int_fast16_t		 m_active_consumers = 0;
-		bool				 m_evict = false;
+
 
 		std::mutex	m_second_lock;
 		locked_wait m_sleeping_threads;

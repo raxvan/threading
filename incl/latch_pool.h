@@ -1,12 +1,12 @@
 #pragma once
 
 #include "thread_primitives.h"
-#include <reflection/virtual_instance_descriptor.h>
 #include <vector>
 
 namespace threading
 {
 
+	/*
 	struct unique_latch_events
 	// when two threads meet with the same string they both continue;
 	// the "unique" stands for "slow", one time use
@@ -37,5 +37,6 @@ namespace threading
 		threading::spin_lock	 m_container_lock;
 		std::vector<latch_entry> m_elements;
 	};
+	*/
 
 }

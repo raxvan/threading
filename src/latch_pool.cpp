@@ -2,7 +2,7 @@
 
 namespace threading
 {
-	void unique_latch_events::arrive_and_wait(const sg::compiletime_identifier& s)
+	/*void unique_latch_events::arrive_and_wait(const sg::compiletime_identifier& s)
 	{
 		m_container_lock.lock();
 
@@ -53,5 +53,5 @@ namespace threading
 	{
 		delete e;
 	}
-
+	*/
 }

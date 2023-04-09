@@ -58,3 +58,32 @@
 			} while (false)
 #	endif
 #endif
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+namespace threading
+{
+
+	struct utils
+	{
+		static void lock_current_thread_to_core(const std::size_t core_index);
+		static void sleep_thread(const uint32_t ms_time);
+
+
+		template <class F>
+		inline static void start_native(std::thread& out, F&& _func)
+		{
+			std::thread tmp(std::move(_func));
+			THREADING_ASSERT(out.joinable() == false);
+			out.swap(tmp);
+		}
+		template <class F>
+		inline static void start_native(std::thread& out, const F& _func)
+		{
+			std::thread tmp(_func);
+			THREADING_ASSERT(out.joinable() == false);
+			out.swap(tmp);
+		}
+	};
+
+}

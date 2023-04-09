@@ -135,9 +135,9 @@ public:
 			if (run > 1)
 			{
 				if (index == 0)
-					threading::lock_current_thread_to_core(0);
+					threading::utils::lock_current_thread_to_core(0);
 				else
-					threading::lock_current_thread_to_core(1);
+					threading::utils::lock_current_thread_to_core(1);
 			}
 
 			{

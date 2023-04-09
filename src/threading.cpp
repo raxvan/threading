@@ -19,7 +19,7 @@
 namespace threading
 {
 
-	void lock_current_thread_to_core(const std::size_t core_index)
+	void utils::lock_current_thread_to_core(const std::size_t core_index)
 	{
 #if DEV_PLATFORM_WIN()
 		SetThreadAffinityMask(GetCurrentThread(), (std::size_t(1) << core_index));
@@ -37,7 +37,7 @@ namespace threading
 #endif
 	}
 
-	void sleep_thread(const uint32_t ms_time)
+	void utils::sleep_thread(const uint32_t ms_time)
 	{
 		std::this_thread::yield();
 #ifdef WIN32
